@@ -1,114 +1,35 @@
 
-# DoorDash Predictive Modeling Project – README
+This is the GitHub repository for our CS M148 Final Group Project investigating DoorDash delivery times in an attempt to predict if an order will be late or not. The members of our group are Benjamin Gelman, Charlie Hoose, Riley Leong, Om Phadke, and Shawn Reznikov. Below is our main report, which is also submitted to GradeScope, and provides an outline of the data, our problem, how we went about solving it (data preprocessing and engineering, EDA, model building, etc.), our results, and how to run the code included.
 
-## 1. Dataset Overview
-This project uses the **DoorDash Delivery Dataset**, which includes operational and behavioral features related to delivery performance.  
-Key variables include:
+## i. Data Set
 
-- Delivery duration, delivery distance, order value  
-- Pickup and drop-off coordinates  
-- Wait time, preparation time, and other operational timestamps  
-- Rider availability and market-level conditions  
-- Engineered features such as estimated travel speed  
+For this project we used the DoorDash Delivery Dataset, which includes operational and behavioral features related to delivery performance. Key variables in this dataset include delivery duration, delivery distance, order value, wait time, preparation time, and other operational timestamps. The dataset contains a large number of observations and it is suitable for insightful analyses and machine learning techniques. We sourced this dataset from Kaggle.
 
-The dataset contains a large number of observations, making it suitable for machine learning–based regression.
+## ii. Problem Overview
 
----
+The goal of this project is to predict DoorDash delivery duration using available operational data. More specifically, we are seeing if we can predict if an order will be abnormally slow. This is important for improving ETA accuracy, optimizing driver allocation, and enhancing customer experience by minimizing complaints. Our analysis would provide DoorDash the ability to make informed optimization decisions and reduce overhead costs. By being able to predict orders that would be excessively slow, DoorDash has the ability to create more accurate wait times and avoid customers getting angry at an optimistically incorrect delivery estimate. Overall, using these machine learning techniques, we are able to capture the complex patterns of delivery times and make informed insights to improve DoorDash’s delivery prediction systems.
 
-## 2. Problem Statement
-The goal of this project is to **predict DoorDash delivery duration** using available operational data.  
-This is important for improving ETA accuracy, optimizing driver allocation, and enhancing customer experience.
 
----
+## iii. Methodologies
 
-## 3. Methodology
+In our approach to predicting slow DoorDash deliveries, we evaluated multiple machine learning techniques such as linear and logistic regression models, random forests, PCA and clustering, and even complex models like neural networks. After careful consideration of the benefits and tradeoffs for every model, we concluded that our final methodology would be the Random Forest ensemble method. We chose this method because it handles interactions between nonlinear features and class imbalance, something that was present in the dataset that we were working with. Random Forest was applied to predict whether orders would be slow, with a slow order being defined as having a delivery duration that was above the 66th percentile. The model used all available features after preprocessing, with delivery_duration_min being removed to prevent data leakage. We then implemented a preprocessing pipeline with median imputation to handle any remaining missing values. We used this method because it is more robust to outliers, something that was prevalent in our dataset. In the model training, we used 5-fold CV to maintain the 1:2 class distribution ratio of slow versus non-slow orders across all folds. We then used RandomizedSearchCV for hyperparameter tuning rather than a grid search because it provided enough exploration of the hyperparameter space while not being as computationally expensive. The chosen hyperparameters for our Random Forest method included the number of trees in the forest, maximum depth, minimum samples required to split a node, minimum samples per leaf, and the number of features considered at each split. The specific search space provided for RandomizedSearchCV was chosen to prevent overfitting and enhance model generalizability, since earlier models severely overfitted. We optimized using ROC AUC as the primary metric because it evaluates model performance across all classification thresholds.
+Random Forest was ideal for this problem for several reasons that are supported by our analysis. First, the nature of delivery prediction involves certain feature interactions that decision trees capture through the way they partition recursively. For example, the impact of outstanding orders on delivery speed depends heavily on the number of available dashers, creating multiple interactions that a linear model cannot represent as appropriately. Second, our feature set included both continuous variables and categorical variables, which Random Forest handles without requiring multiple scaling and standardizing. Additionally, analysis through PCA and clustering validated our Random Forest approach, as PCA revealed that there weren’t any prominent PCs that explained most of the variance. Without this dimensionality reduction, Random Forest’s approach of using full features was justified and it makes sense why it performed the best. Lastly, Random Forest being an ensemble method also made it very robust to some of our data’s characteristics. Individual decision trees are prone to overfitting, but aggregating predictions across 200 trees with different random feature subsets and bootstrap samples reduces variance while maintaining the low bias of deep trees. Overall, by choosing Random Forest as a method of classification, we can most accurately identify slow orders.
 
-### 3.1 Preprocessing
-- Cleaning missing values  
-- Outlier removal  
-- One-hot encoding categorical variables  
-- Standardization of continuous features  
-- Feature engineering  
-- Train–test split  
+## iv. Results
 
-### 3.2 Models Evaluated
-- Linear Regression (baseline)  
-- Ridge & Lasso Regression  
-- Random Forest  
-- Gradient Boosting  
-- XGBoost  
+The Random Forest Classifier model performed decently well at predicting slow deliveries in the DoorDash dataset. Metrics that were output included accuracy, precision, recall, F1-score, and ROC AUC, as these would provide a good idea of the model’s performance. The best hyperparameters found were 200 estimators, a minimum samples split of 10, a minimum samples leaf of 5, a maximum depth of 20, and sqrt for max features. The metrics for training were the following: 88.12% accuracy, a true positive rate of 0.853, a true negative rate of 0.8958, and an F1-score of 0.8301. It is important to compare these metrics with the cross-validation metrics to look for any overfitting or underfitting.
 
-### 3.3 Hyperparameter Tuning
-Tuning with **GridSearchCV**, optimizing:
-- n_estimators  
-- max_depth  
-- learning_rate  
-- regularization parameters  
+Across cross-validation, the final model achieved a best ROC AUC of 0.8217, with validation accuracy of 75.8% and F1-score of 0.649, meaning the model got solid performance on the imbalanced dataset. Compared to the training metrics, the lower cross-validation performance suggests the existence of some overfitting despite the actions taken to prevent it, but the model still has the ability to generalize relatively well.
 
-### 3.4 Why the Best Method Worked
-Gradient Boosting / XGBoost performed best due to:
-- Ability to model nonlinear relationships  
-- Robustness against noisy and high-dimensional data  
-- Strong generalization performance  
-- Useful feature importance outputs  
+Overall, the model achieved a test accuracy of 75.7%, with a test ROC AUC of 0.820 and an F1-score of 0.647. With an AUC of approximately 0.82, the model shows moderate ability to discriminate between slow and non-slow deliveries. These metrics therefore suggest that the model can reasonably determine slow vs. not slow deliveries accurately, with room for improvement. Additionally, a probability threshold of 0.503 was calculated on the training set in order to maximize F1-score, balancing precision and recall for the “slow” class. This was done to ensure that the threshold was as optimal as possible and didn’t simply assume the standard 0.5. This resulted in a 0.647 precision and 0.646 recall for the “slow” class, meaning it correctly predicts about 65% of truly slow orders while about 65% of its slow predictions are correct. Additionally, a confusion matrix was created to help visualize the distribution of predictions. It shows the predictions being mostly balanced, predicting most labels correctly. Also, a test ROC AUC curve was visualized to help understand the model’s performance even further.
 
----
+Last but not least, both impurity-based and permutation importance were used to assess feature relevance. The most important predictors include total outstanding orders, total on-shift dashers, created hour, and estimated store-to-consumer driving duration, all reflecting delivery workload, dasher capacity, and DoorDash system congestion. Other important or moderately influential features include subtotal, created weekend, estimated order placement duration, total busy dashers, and item price statistics (maximum and minimum item price). This makes sense, as these variables describe demand, dasher availability, timing, and order complexity. Features such as specific market IDs and order protocols show lower importance, suggesting they contribute very little predictive value beyond the operational and workload-related features above. 
 
-## 4. Results
+Although we are mainly discussing the accuracy and metrics of our Random Forest model, we created many different types in order to make the best possible model. The other models not included in this results section, including linear regression, logistic regression, PCA/clustering, and neural networks, are all discussed later on in the appendix, and their respective Google Colabs are in the repository, as well.
 
-### 4.1 Evaluation Metrics
-- MAE  
-- MSE  
-- RMSE  
-- R² Score  
-- 5-fold Cross-Validation averages  
+Some limitations of our approach are that we used an arbitrary threshold of the 66th percentile to determine the “slow_order” class, which was our response variable. We figured this was the best point since a delivery taking more than ~50 minutes is a long time, and that threshold would leave a somewhat balanced dataset while still making logical sense. It would be illogical to split it at the 50th percentile and try to predict a 50/50 split of faster and slower orders, too, as an order in the 51st percentile would be considered “slow” in that case. It would be more accurate to say that is slightly above average, and to avoid misclassification of slow in a real life sense, we chose to identify the 66th percentile and onwards as slow. In addition, the gap between training and validation performance implies there is still some overfitting, which could be addressed through stricter hyperparameters or model constraints. Last but not least, the dataset we used did not have many features surrounding the real world, such as weather or holiday proximity, which could have limited our performance since we’re only dealing with the data that DoorDash has. Moreover, knowing the distance between the restaurant and the home would be extremely beneficial in creating more accurate models, however privacy concerns surely block that as a possibility moving forward. Future steps could include addressing issues such as the evident overfitting and incorporating external datasets to improve model accuracy and generalizability.
 
-### 4.2 Cross-Validation Summary
-5-fold CV confirmed the model's stability and generalization ability.
+## v. Code
 
----
+Our main Google Colab notebook loads the original DoorDash dataset directly from our GitHub repository (using a raw file link), so no manual downloading or uploading data is required. For the appendix portions, you can either download the dataset from our GitHub repository and upload it directly into the Google Colab prior to executing the notebook, or run the EDA/Preprocessing part of our main Google Colab notebook (“Random_Forest_Final_Model.ipynb”), uncomment the code block that saves the dataset prior to developing our final model, and download the resulting dataset. This dataset can then be uploaded into Colab, as it is identical to the dataset that is used in the remaining notebooks. The main Google Colab notebook still holds all the required packages, the cleaned dataset, methodology for our best model, and the results. There are also additional Colabs for other components of the project, including linear regression, PCA, logistic regression, and neural networks. All of this can be found in this GitHub repository. 
 
-## 5. Conclusions
-
-### Why We Chose the Final Model
-- Best predictive performance  
-- Lowest error across metrics  
-- Stability across folds  
-- Handles complex interactions well  
-
-### Limitations
-- Sensitive to data drift  
-- Lacks real-time features like traffic or weather  
-- Assumes the dataset is representative across markets  
-
----
-
-## 6. How to Use the Notebook
-
-### Requirements
-```
-pandas
-numpy
-scikit-learn
-matplotlib
-seaborn
-xgboost
-```
-
-### Running
-1. Open `CSM148_DoorDash_Project.ipynb` in Google Colab  
-2. Upload dataset or mount Google Drive  
-3. Run all cells in order  
-4. Outputs include preprocessing, model training, hyperparameter tuning, and evaluation  
-
----
-
-## 7. Repository Structure
-```
-|–– README.md  
-|–– CSM148_DoorDash_Project.ipynb  
-|–– data/  
-|     └── dataset.csv  
-|–– plots/  
-|–– models/
-```
